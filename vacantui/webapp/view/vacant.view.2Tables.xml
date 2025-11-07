@@ -1,0 +1,159 @@
+<mvc:View controllerName="com.lt.vacantui.controller.vacant"
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+    core:require="{DateType: 'sap/ui/model/type/Date'}"
+	xmlns:f="sap.f"
+	xmlns:layout="sap.ui.layout"
+	xmlns:mvc="sap.ui.core.mvc">
+    <!-- <Page id="page" title="{i18n>title}">
+    </Page> -->
+	<f:DynamicPage id="dynamicPageId" toggleHeaderOnTitleClick="false">
+		<!-- DynamicPage Title -->
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Position Deactivate Tool"/>
+					<!-- <Title text="Products ({products>/ProductCollectionStats/Counts/Total})"/> -->
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+			<VBox id="idVBox" fitContainer="true">
+				<OverflowToolbar class="sapFDynamicPageAlignContent">
+					<!-- <ToolbarSpacer/> -->
+                    <Label design="Bold" text="Employee Group" width="7rem"/>
+					<MultiComboBox selectionFinish="handleSelectionFinish" width="170px" 
+						items="{
+							path: 'EGModel>/cust_EmployeeTypeEG', sorter: { path: 'externalName' }
+						}">
+						<core:Item key="{EGModel>externalCode}" text="{EGModel>externalName}" />
+					</MultiComboBox>
+					
+				<!-- <Label design="Bold" text="Position Codes" width="6.5rem" class="sapUiMediumMarginBegin"/>					
+					 <MultiComboBox width="150px" showSelectAll="true"
+							items="{path: 'PositionsCodeModel>/', length:'10000'}">
+						<core:Item key="{PositionsCodeModel>code}" text="{= ${PositionsCodeModel>code} + ' - '+ ${PositionsCodeModel>externalName_defaultValue} }" />
+					</MultiComboBox> -->
+
+					<!-- <MultiInput width="20%" 
+						id="multiInput" 
+						suggestionItems="{
+							path: 'PositionsCodeModel>/', sorter: { path: 'code' }
+						}"
+						valueHelpRequest="handleValueHelp">
+						<core:Item key="{PositionsCodeModel>code}" text="{= ${PositionsCodeModel>code} + ' - '+ ${PositionsCodeModel>externalName_defaultValue} }" />
+					</MultiInput> -->
+					
+					<Label design="Bold" text="Effective Date" width="6rem" class="sapUiMediumMarginBegin"/>					
+       				<DatePicker id="idDate" width="10rem" value="{path: 'oModelDate>/date',type: 'DateType'}"/>
+                    
+					<!-- <DatePicker id="idDate" width="10rem"/> -->
+					<Button text="Get Vacancy Codes" type="Accept" press="_doGetVacancyCodesBatch" class="sapUiMediumMarginBegin"/>
+					<Button text="Deactivate" type="Accept" press="doDeactivePosition" class="sapUiMediumMarginBegin"/>
+				</OverflowToolbar>
+        	</VBox>		
+<FlexBox
+  direction="Row"
+  justifyContent="Start"
+  alignItems="Center"
+  class="sapUiSmallMargin">
+  
+  <!-- Input: Employee ID -->
+  <VBox class="sapUiSmallMarginEnd">
+    <Label text="Employee ID" labelFor="empIdInput"/>
+    <Input id="empIdInput" placeholder="Enter ID"/>
+  </VBox>
+
+  <!-- Input: Name -->
+  <VBox class="sapUiSmallMarginEnd">
+    <Label text="Name" labelFor="nameInput"/>
+    <Input id="nameInput" placeholder="Enter Name"/>
+  </VBox>
+
+  <!-- Dropdown: Department -->
+  <VBox class="sapUiSmallMarginEnd">
+    <Label text="Department" labelFor="deptSelect"/>
+    <Select id="deptSelect">
+      <items>
+        <core:Item key="HR" text="HR"/>
+        <core:Item key="IT" text="IT"/>
+        <core:Item key="FIN" text="Finance"/>
+      </items>
+    </Select>
+  </VBox>
+
+  <!-- Button: Search -->
+  <VBox class="sapUiSmallMarginEnd">
+    <Label text=" "/>
+    <Button text="Search" press="onSearch"/>
+  </VBox>
+
+</FlexBox>
+		
+			</f:DynamicPageHeader>
+		</f:header>
+        <!-- DynamicPage Content -->
+		<f:content>
+			<FlexBox>
+				<Panel class="sapUiTinyMarginEnd" width="75%">
+			<Table id="idPositionTable" items="{PositionsCodeModel>/}" inset="false" growing="true" growingThreshold="50" 
+					 sticky="ColumnHeaders" mode="MultiSelect">
+				<headerToolbar>
+					<OverflowToolbar>
+						<Title id="idTitleCount" text="" level="H2"/>
+						<ToolbarSpacer/>
+						<SearchField liveChange="onSearch" width="10rem"/>
+					</OverflowToolbar>
+				</headerToolbar>
+				<columns>
+					<Column width="12em" minScreenWidth="Tablet" demandPopin="true">
+						<Text text="Position Code" />
+					</Column>
+					<Column width="15em" minScreenWidth="Tablet" demandPopin="true">
+						<Text text="Position Description" />
+					</Column>
+				</columns>
+				<items>
+					<ColumnListItem vAlign="Middle">
+						<cells>
+							<Text text="{PositionsCodeModel>code}"/>
+							<Text text="{PositionsCodeModel>externalName_defaultValue}" />
+						</cells>
+					</ColumnListItem>
+				</items>
+			</Table>
+			</Panel>
+			<Panel class="sapUiTinyMarginBegin" width="100%">
+			<Table id="idVacancyTable" items="{VanacyListModel>/}" inset="false" growing="true" growingThreshold="50" 
+					 sticky="ColumnHeaders" mode="MultiSelect">
+				<headerToolbar>
+					<OverflowToolbar>
+						<Title id="idVacancyTitle" text="" level="H2"/>
+						<ToolbarSpacer/>
+						<SearchField liveChange="onSearch" width="10rem"/>
+					</OverflowToolbar>
+				</headerToolbar>
+				<columns>
+					<Column width="12em" minScreenWidth="Tablet" demandPopin="true">
+						<Text text="Vacancy Code" />
+					</Column>
+					<Column width="15em" minScreenWidth="Tablet" demandPopin="true">
+						<Text text="Vacancy Description" />
+					</Column>
+				</columns>
+				<items>
+					<ColumnListItem vAlign="Middle">
+						<cells>
+							<Text text="{VanacyListModel>code}"/>
+							<Text text="{VanacyListModel>externalName_defaultValue}" />
+						</cells>
+					</ColumnListItem>
+				</items>
+			</Table>
+			</Panel>
+		</FlexBox>
+		</f:content>
+	</f:DynamicPage>
+</mvc:View>

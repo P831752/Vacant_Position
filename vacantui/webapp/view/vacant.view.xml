@@ -1,0 +1,143 @@
+<mvc:View controllerName="com.lt.vacantui.controller.vacant"
+	xmlns="sap.m"
+	xmlns:core="sap.ui.core"
+    core:require="{DateType: 'sap/ui/model/type/Date'}"
+	xmlns:f="sap.f"
+	xmlns:layout="sap.ui.layout"
+	xmlns:mvc="sap.ui.core.mvc">
+    <!-- <Page id="page" title="{i18n>title}">
+    </Page> -->
+	<f:DynamicPage id="dynamicPageId" toggleHeaderOnTitleClick="false">
+		<!-- DynamicPage Title -->
+		<f:title>
+			<f:DynamicPageTitle>
+				<f:heading>
+					<Title text="Position Deactivate Tool"/>
+					<!-- <Title text="Products ({products>/ProductCollectionStats/Counts/Total})"/> -->
+				</f:heading>
+			</f:DynamicPageTitle>
+		</f:title>
+
+		<f:header>
+			<f:DynamicPageHeader pinnable="false">
+	
+				<FlexBox
+					direction="Row"
+					justifyContent="Start"
+					alignItems="Center"
+					class="sapUiSmallMargin">
+
+<VBox class="sapUiSmallMarginEnd">
+    <Label text="IC's" design="Bold"/>
+    <ComboBox
+        id="idICComboBox"
+        width="170px"
+        items="{
+            path: 'ICModel>/ICs'
+        }">
+        <core:Item key="{ICModel>icCode}" text="{ICModel>icText}" />
+    </ComboBox>
+</VBox>
+
+					<VBox class="sapUiSmallMarginEnd">
+						<Label text="Employee Group" design="Bold"/>
+						<ComboBox id="idEgComboBox" width="170px" 
+							items="{
+								path: 'EGModel>/cust_EmployeeTypeEG', sorter: { path: 'externalName' }
+							}">
+							<core:Item key="{EGModel>externalCode}" text="{EGModel>externalName}" />
+						</ComboBox>
+					</VBox>
+
+					<VBox class="sapUiSmallMarginEnd">
+						<Label design="Bold" text="Effective Date" width="6rem"/>
+						<DatePicker id="idDate" width="10rem" value="{path: 'oModelDate>/date',type: 'DateType'}"/>
+					</VBox>
+
+					<!-- Button: Search -->
+					<VBox class="sapUiSmallMarginEnd">
+						<Label text=" "/>
+						<!-- <Button text="Get Vacancy Codes" type="Accept" press="_doGetVacancyCodesBatch"/> -->
+						<Button text="Get Vacancy Codes" type="Accept" press="_doGetVacancyPositions"/>
+					</VBox>
+					<VBox class="sapUiSmallMarginEnd">
+						<Label text=" "/>
+						<Button text="Deactivate" type="Accept" press="doDeactivePosition"/>
+					</VBox>			
+				</FlexBox>		
+			</f:DynamicPageHeader>
+		</f:header>
+        <!-- DynamicPage Content -->
+		<f:content>
+			<FlexBox>
+			<!--	<Panel class="sapUiTinyMarginEnd" width="75%">
+				<Table id="idPositionTable" items="{PositionsCodeModel>/}" inset="false" growing="true" growingThreshold="50" 
+						sticky="ColumnHeaders" mode="MultiSelect">
+					<headerToolbar>
+						<OverflowToolbar>
+							<Title id="idTitleCount" text="" level="H2"/>
+							<ToolbarSpacer/>
+							<SearchField liveChange="onSearch" width="10rem"/>
+						</OverflowToolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="12em" minScreenWidth="Tablet" demandPopin="true">
+							<Text text="Position Code" />
+						</Column>
+						<Column width="15em" minScreenWidth="Tablet" demandPopin="true">
+							<Text text="Position Description" />
+						</Column>
+					</columns>
+					<items>
+						<ColumnListItem vAlign="Middle">
+							<cells>
+								<Text text="{PositionsCodeModel>code}"/>
+								<Text text="{PositionsCodeModel>externalName_defaultValue}" />
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+			</Panel> -->
+			<Panel class="sapUiTinyMarginBegin" width="100%">
+				<Table id="idVacancyTable" items="{VanacyListModel>/}" inset="false" growing="true" growingThreshold="50" 
+						sticky="ColumnHeaders" mode="MultiSelect">
+					<headerToolbar>
+						<OverflowToolbar>
+							<Title id="idVacancyTitle" text="" level="H2"/>
+							<ToolbarSpacer/>
+							<SearchField liveChange="onSearch" width="10rem"/>
+						</OverflowToolbar>
+					</headerToolbar>
+					<columns>
+						<Column width="12em" minScreenWidth="Tablet" demandPopin="true">
+							<Text text="Vacancy Code" />
+						</Column>
+						<Column width="15em" minScreenWidth="Tablet" demandPopin="true">
+							<Text text="Vacancy Description" />
+						</Column>
+						<Column width="15em" minScreenWidth="Tablet" demandPopin="true">
+							<Text text="Start Date" />
+						</Column>
+					</columns>
+					<items>
+						<ColumnListItem vAlign="Middle">
+							<cells>
+								<Text text="{VanacyListModel>code}"/>
+								<Text text="{VanacyListModel>externalName_defaultValue}" />
+								<Text text="{
+											path: 'VanacyListModel>effectiveStartDate',
+											type: 'sap.ui.model.type.DateTime',
+											formatOptions: {
+												pattern: 'dd-MM-yyyy',
+												UTC: true
+											}
+								}" />
+							</cells>
+						</ColumnListItem>
+					</items>
+				</Table>
+			</Panel>
+		</FlexBox>
+		</f:content>
+	</f:DynamicPage>
+</mvc:View>

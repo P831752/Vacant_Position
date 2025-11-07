@@ -1,0 +1,85 @@
+_schema-version: "3.2"
+ID: Vacant_Position
+description: Vacant Position Tool
+version: 0.0.1
+modules:
+- name: Vacant_Position-router
+  type: approuter.nodejs
+  path: router
+  requires:
+  - name: Vacant_Position-html5-repo-runtime
+  - name: Vacant_Position-uaa
+  - name: Vacant_Position-destination-service
+    group: destinations
+    properties:
+      forwardAuthToken: false
+      name: ui5
+      url: https://ui5.sap.com
+  parameters:
+    disk-quota: 256M
+    memory: 256M
+- name: Vacant_Position-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: Vacant_Position-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - comltvacantui.zip
+      name: comltvacantui
+      target-path: resources/
+- name: comltvacantui
+  type: html5
+  path: vacantui
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: Vacant_Position-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      tenant-mode: dedicated
+      xsappname: Vacant_Position-${space-guid}
+    service: xsuaa
+    service-plan: application
+- name: Vacant_Position-html5-repo-runtime
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-plan: app-runtime
+- name: Vacant_Position-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: false
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: Vacant_Position-destination-service
+    service-plan: lite
+- name: Vacant_Position-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: Vacant_Position-html5-service
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
