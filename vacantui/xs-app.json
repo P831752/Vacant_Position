@@ -13,6 +13,7 @@
       "source": "^/odata/v4/VacancyService/(.*)$",
       "target": "/odata/v4/VacancyService/$1",
       "destination": "VACANT_SRV",
+      "timeout": 600000,
       "authenticationType": "none",
       "csrfProtection": false
     },

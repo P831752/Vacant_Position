@@ -120,15 +120,16 @@ sap.ui.define([
             oBusyDialog.open();
 
             try {
-                const oVacancyList = this._getVacancyList("VALV", "E");
+                const oVacancyList = await this._getVacancyList("VALV", "E");
+                console.log("oVacancyList:" + oVacancyList)
                 /*const sUrl = `/vacancy-service/GetVacancies(IC='${sIC}',EmpGroup='${sEG}')`;
                 const response = await fetch(sUrl);
                 const data = await response.json();*/
 
-                const oModel = new sap.ui.model.json.JSONModel(oVacancyList.value);
+                /*const oModel = new sap.ui.model.json.JSONModel(oVacancyList.value);
 
                 this.getView().setModel(oModel, "VanacyListModel");
-                this.byId('idVacancyTitle').setText(`Vacant Positions (${data.value.length})`);
+                this.byId('idVacancyTitle').setText(`Vacant Positions (${data.value.length})`); */
             } catch (err) {
                 MessageBox.error(`Error fetching vacancies: ${err.message}`);
             } finally {
@@ -138,19 +139,25 @@ sap.ui.define([
 
         _getVacancyList(ic, eg) {
             let oModel = this.getOwnerComponent().getModel("VacancyService").sServiceUrl
-            $.ajax({
-                url: `${oModel}GetVacancies`,
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({ IC: ic, EmpGroup: eg }),
-                success: (response) => {
-                    console.log("response:" + response)
-                    return response
-                },
-                error: (err) => {
-                    let errorMsg = err?.responseText || "Unknown error";
-                    MessageBox.error(`_getVacancyList: ${errorMsg}`);
-                }
+
+
+            // Return a promise
+            return new Promise((resolve, reject) => {
+
+                $.ajax({
+                    url: `${oModel}GetVacancies`,
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ IC: ic, EmpGroup: eg }),
+                    success: (response) => {
+                        console.log("response:" + response)
+                        resolve(response); // Resolve the promise with response
+                    },
+                    error: (err) => {
+                        let errorMsg = err?.responseText || "Unknown error";
+                        reject(new Error(errorMsg)); // Reject the promise
+                    }
+                });
             });
         },
         _readAllPositionCodes: async function (model, entityPath, filters, busyDialog) {
