@@ -24,6 +24,15 @@
           "localUri": "localService/mainService/metadata.xml",
           "odataVersion": "2.0"
         }
+      },
+      "VacancyService": {
+        "uri": "/odata/v4/VacancyService/",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/VacancyService/metadata.xml",
+          "odataVersion": "4.0"
+        }
       }
     }
   },
@@ -67,6 +76,15 @@
         "dataSource": "mainService",
         "preload": true,
         "settings": {}
+      },
+      "VacancyService": {
+        "dataSource": "VacancyService",
+        "preload": true,
+        "settings": {
+          "operationMode": "Server",
+          "autoExpandSelect": true,
+          "earlyRequests": true
+        }
       }
     },
     "resources": {

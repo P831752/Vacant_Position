@@ -39,4 +39,8 @@ server:
             metadataPath: ./webapp/localService/mainService/metadata.xml
             mockdataPath: ./webapp/localService/mainService/data
             generateMockData: true
+          - urlPath: /odata/v4/VacancyService
+            metadataPath: ./webapp/localService/VacancyService/metadata.xml
+            mockdataPath: ./webapp/localService/VacancyService/data
+            generateMockData: true
         annotations: []

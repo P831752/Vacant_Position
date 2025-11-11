@@ -108,63 +108,51 @@ sap.ui.define([
         },
 
         _doGetVacancyPositions: async function (oEvent) {
-            var oICComboBox = this.byId("idICComboBox");
-            var sSelectedICKey = oICComboBox.getSelectedKey();
+            const sIC = this.byId("idICComboBox").getSelectedKey();
+            const sEG = this.byId("idEgComboBox").getSelectedKey();
 
-            var oEgComboBox = this.byId("idEgComboBox");
-            var sSelectedEGKey = oEgComboBox.getSelectedKey();
+            if (!sIC || !sEG) return MessageBox.warning("Please select IC and Employee Group");
+
+            const oBusyDialog = new sap.m.BusyDialog({
+                title: "Fetching Vacancy Positions",
+                text: "Please wait..."
+            });
+            oBusyDialog.open();
+
             try {
-                if (!sSelectedICKey) {
-                    throw new Error("Please select IC")
-                }
-                if (!sSelectedEGKey) {
-                    throw new Error("Please select Employee Group")
-                }
+                const oVacancyList = this._getVacancyList("VALV", "E");
+                /*const sUrl = `/vacancy-service/GetVacancies(IC='${sIC}',EmpGroup='${sEG}')`;
+                const response = await fetch(sUrl);
+                const data = await response.json();*/
 
-                //if (!sSelectedKey) {
+                const oModel = new sap.ui.model.json.JSONModel(oVacancyList.value);
 
-                var oBusyDialog = new sap.m.BusyDialog({
-                    title: "Fetching Vacancy Positions",
-                    text: "Please wait..."
-                });
-                oBusyDialog.open();
-
-                var that = this;
-                var oModel = this.getOwnerComponent().getModel("EGModel");//define wihtout empty model name in Manifest
-                var oJSONModel = new JSONModel();
-
-                var oSelEGFilters = [];
-                oSelEGFilters.push(new sap.ui.model.Filter("effectiveStatus", sap.ui.model.FilterOperator.EQ, 'A'));
-                oSelEGFilters.push(new sap.ui.model.Filter("cust_EmployeeGroup", sap.ui.model.FilterOperator.EQ, sSelectedEGKey));
-                oSelEGFilters.push(new sap.ui.model.Filter("businessUnit", sap.ui.model.FilterOperator.EQ, sSelectedICKey));
-
-
-
-                const allPositionCodes = await that._readAllPositionCodes(oModel, "/Position", oSelEGFilters, oBusyDialog);
-                console.log("allPositionCodes:" + allPositionCodes.length);
-                oBusyDialog.setTitle("verifying total " + allPositionCodes.length + " records")
-
-                const allVacancyCodes = await that._readAllVacancyCodes(oModel, "/EmpJob", allPositionCodes, oBusyDialog);
-
-                oJSONModel.setData(allVacancyCodes);
-                oJSONModel.setSizeLimit(1000000);
-                that.getView().setModel(oJSONModel, "VanacyListModel");
-                that.byId('idVacancyTitle').setText("Vacant Positions (" + allVacancyCodes.length + ")");
-
-            } catch (error) {
-                MessageBox.error(error.message) // Show error on screen
+                this.getView().setModel(oModel, "VanacyListModel");
+                this.byId('idVacancyTitle').setText(`Vacant Positions (${data.value.length})`);
+            } catch (err) {
+                MessageBox.error(`Error fetching vacancies: ${err.message}`);
+            } finally {
                 oBusyDialog.close();
-                console.error("OData error:", error);
             }
-
-            oBusyDialog.close();
-
-            // else {
-            //     let oJSONModel = new JSONModel();
-            //     this.getView().setModel(oJSONModel, "PositionsCodeModel");
-            // }
         },
 
+        _getVacancyList(ic, eg) {
+            let oModel = this.getOwnerComponent().getModel("VacancyService").sServiceUrl
+            $.ajax({
+                url: `${oModel}GetVacancies`,
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ IC: ic, EmpGroup: eg }),
+                success: (response) => {
+                    console.log("response:" + response)
+                    return response
+                },
+                error: (err) => {
+                    let errorMsg = err?.responseText || "Unknown error";
+                    MessageBox.error(`_getVacancyList: ${errorMsg}`);
+                }
+            });
+        },
         _readAllPositionCodes: async function (model, entityPath, filters, busyDialog) {
             //return new Promise((resolve, reject) => {
             let allPositionCodes = [];

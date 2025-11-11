@@ -16,9 +16,12 @@ server:
             - /test-resources
           url: https://ui5.sap.com
         backend:
-          - path: /odata
+          - path: /odata/v2
             url: https://api10.successfactors.com
             destination: SF_DEST
+          - path: /odata/v4/VacancyService
+            url: https://larsen---toubro-limited-sf-ext-preview-pspace-vacant-po4054cb62.cfapps.in30.hana.ondemand.com
+            destination: VACANT_SRV
     - name: fiori-tools-appreload
       afterMiddleware: compression
       configuration:

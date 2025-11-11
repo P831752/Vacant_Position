@@ -108,30 +108,61 @@ sap.ui.define([
         },
 
         _doGetVacancyPositions: async function (oEvent) {
-            const sIC = this.byId("idICComboBox").getSelectedKey();
-            const sEG = this.byId("idEgComboBox").getSelectedKey();
-            
-            if (!sIC || !sEG) return MessageBox.warning("Please select IC and Employee Group");
+            var oICComboBox = this.byId("idICComboBox");
+            var sSelectedICKey = oICComboBox.getSelectedKey();
 
-            const oBusyDialog = new sap.m.BusyDialog({ 
-                title: "Fetching Vacancy Positions", 
-                text: "Please wait..." 
-            });
-            oBusyDialog.open();
-
+            var oEgComboBox = this.byId("idEgComboBox");
+            var sSelectedEGKey = oEgComboBox.getSelectedKey();
             try {
-                const sUrl = `/vacancy-service/GetVacancies(IC='${sIC}',EmpGroup='${sEG}')`;
-                const response = await fetch(sUrl);
-                const data = await response.json();
+                if (!sSelectedICKey) {
+                    throw new Error("Please select IC")
+                }
+                if (!sSelectedEGKey) {
+                    throw new Error("Please select Employee Group")
+                }
 
-                const oModel = new sap.ui.model.json.JSONModel(data.value);
-                this.getView().setModel(oModel, "VanacyListModel");
-                this.byId('idVacancyTitle').setText(`Vacant Positions (${data.value.length})`);
-            } catch (err) {
-                MessageBox.error(`Error fetching vacancies: ${err.message}`);
-            } finally {
+                //if (!sSelectedKey) {
+
+                var oBusyDialog = new sap.m.BusyDialog({
+                    title: "Fetching Vacancy Positions",
+                    text: "Please wait..."
+                });
+                oBusyDialog.open();
+
+                var that = this;
+                var oModel = this.getOwnerComponent().getModel("EGModel");//define wihtout empty model name in Manifest
+                var oJSONModel = new JSONModel();
+
+                var oSelEGFilters = [];
+                oSelEGFilters.push(new sap.ui.model.Filter("effectiveStatus", sap.ui.model.FilterOperator.EQ, 'A'));
+                oSelEGFilters.push(new sap.ui.model.Filter("cust_EmployeeGroup", sap.ui.model.FilterOperator.EQ, sSelectedEGKey));
+                oSelEGFilters.push(new sap.ui.model.Filter("businessUnit", sap.ui.model.FilterOperator.EQ, sSelectedICKey));
+
+
+
+                const allPositionCodes = await that._readAllPositionCodes(oModel, "/Position", oSelEGFilters, oBusyDialog);
+                console.log("allPositionCodes:" + allPositionCodes.length);
+                oBusyDialog.setTitle("verifying total " + allPositionCodes.length + " records")
+
+                const allVacancyCodes = await that._readAllVacancyCodes(oModel, "/EmpJob", allPositionCodes, oBusyDialog);
+
+                oJSONModel.setData(allVacancyCodes);
+                oJSONModel.setSizeLimit(1000000);
+                that.getView().setModel(oJSONModel, "VanacyListModel");
+                that.byId('idVacancyTitle').setText("Vacant Positions (" + allVacancyCodes.length + ")");
+
+            } catch (error) {
+                MessageBox.error(error.message) // Show error on screen
                 oBusyDialog.close();
+                console.error("OData error:", error);
             }
+
+            oBusyDialog.close();
+
+            // else {
+            //     let oJSONModel = new JSONModel();
+            //     this.getView().setModel(oJSONModel, "PositionsCodeModel");
+            // }
         },
 
         _readAllPositionCodes: async function (model, entityPath, filters, busyDialog) {

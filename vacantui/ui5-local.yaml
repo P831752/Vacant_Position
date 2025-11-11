@@ -30,9 +30,13 @@ server:
       configuration:
         ignoreCertError: false # If set to true, certificate errors will be ignored. E.g. self-signed certificates will be accepted
         backend:
-          - path: /odata
+          - path: /odata/v2
             url: https://api10.successfactors.com
             destination: SF_DEST
+          - url: https://larsen---toubro-limited-sf-ext-preview-pspace-vacant-po4054cb62.cfapps.in30.hana.ondemand.com
+            authenticationType: NoAuthentication
+            destination: VACANT_SRV
+            path: /odata/v4/VacancyService
     - name: sap-fe-mockserver
       beforeMiddleware: csp
       configuration:
@@ -41,5 +45,9 @@ server:
           - urlPath: /odata/v2
             metadataPath: ./webapp/localService/mainService/metadata.xml
             mockdataPath: ./webapp/localService/mainService/data
+            generateMockData: true
+          - urlPath: /odata/v4/VacancyService
+            metadataPath: ./webapp/localService/VacancyService/metadata.xml
+            mockdataPath: ./webapp/localService/VacancyService/data
             generateMockData: true
         annotations: []
