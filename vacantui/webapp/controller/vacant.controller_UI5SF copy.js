@@ -195,231 +195,72 @@ sap.ui.define([
             return allPositionCodes;
         },
 
-        // 40 seconds
-        /*        _readAllVacancyCodes: function (model, entityPath, positionCodes, busyDialog) {
-                    return new Promise((resolve, reject) => {
-                        const oVacancyList = [];
-                        const chunkSize = 180; // SF OData max per batch
-                        const parallelBatches = 4; // safe parallel count (try 3–5)
-        
-                        model.setUseBatch(true);
-                        model.setDeferredGroups(["positionBatch"]);
-        
-                        const createBatchPromise = (chunk, batchNo) => {
-                            return new Promise((batchResolve, batchReject) => {
-                                const aRequestMap = [];
-        
-                                chunk.forEach((position) => {
-                                    const filters = [new sap.ui.model.Filter("position", sap.ui.model.FilterOperator.EQ, position.code)];
-                                    aRequestMap.push(position);
-                                    model.read(entityPath, {
-                                        filters,
-                                        urlParameters: {
-                                            fromDate: "1900-01-01",
-                                            $orderby: "startDate desc",
-                                        },
-                                        groupId: "positionBatch",
-                                    });
-                                });
-        
-                                model.submitChanges({
-                                    groupId: "positionBatch",
-                                    success: (oResponse) => {
-                                        if (oResponse.__batchResponses) {
-                                            oResponse.__batchResponses.forEach((resp, index) => {
-                                                const pos = aRequestMap[index];
-                                                const data = resp.data?.results || [];
-                                                if (data.length === 0 || (data[0].emplStatus !== "6021" && data[0].emplStatus !== "6025")) {
-                                                    oVacancyList.push(pos);
-                                                }
-                                            });
-                                        }
-                                        console.log(`✅ Batch ${batchNo} completed (${chunk.length})`);
-                                        batchResolve();
-                                    },
-                                    error: (err) => {
-                                        console.error(`❌ Batch ${batchNo} failed`, err);
-                                        batchReject(err);
-                                    },
-                                });
-                            });
-                        };
-        
-                        // Split into batches of 180
-                        const chunks = [];
-                        for (let i = 0; i < positionCodes.length; i += chunkSize) {
-                            chunks.push(positionCodes.slice(i, i + chunkSize));
-                        }
-        
-                        const processParallelBatches = async () => {
-                            for (let i = 0; i < chunks.length; i += parallelBatches) {
-                                const group = chunks.slice(i, i + parallelBatches);
-                                await Promise.all(group.map((chunk, idx) => createBatchPromise(chunk, i + idx + 1)));
-                                console.log(`⏩ Completed parallel group ${i / parallelBatches + 1}/${Math.ceil(chunks.length / parallelBatches)}`);
-                            }
-                        };
-        
-                        processParallelBatches()
-                            .then(() => {
-                                console.log("🏁 All batches processed successfully.");
-                                resolve(oVacancyList);
-                            })
-                            .catch((err) => {
-                                console.error("Vacancy Batch Error:", err);
-                                sap.m.MessageBox.error("Vacancy Batch Error: " + (err.message || err));
-                                reject(err);
-                            });
-                    });
-                }, */
-
-        _readAllVacancyCodes: function (model, entityPath, positionCodes) {
+        _readAllVacancyCodes: function (model, entityPath, positionCodes, busyDialog) {
             return new Promise((resolve, reject) => {
-                const oVacancyList = [];
-                const chunkSize = 180;          // SF OData max
-                const parallelBatches = 5;      // safe sweet spot (try 5–6)
-                let processed = 0;
-                let startTime = Date.now();
-
+                var oVacancyList = [];
+                // Function to process chunks recursively
                 model.setUseBatch(true);
                 model.setDeferredGroups(["positionBatch"]);
+                var chunkSize = 180;
 
-                // 🟩 Create progress dialog
-                const oProgressBar = new sap.m.ProgressIndicator({
-                    percentValue: 0,
-                    width: "100%",
-                    displayValue: "Starting...",
-                    showValue: true,
-                    state: "Information"
-                });
+                const processChunk = (startIndex) => {
 
-                const oStatusText = new sap.m.Text({ text: "Initializing batch processing..." });
-                const oSpinner = new sap.m.BusyIndicator({ size: "2rem" });
-
-                const oVBox = new sap.m.VBox({
-                    alignItems: "Center",
-                    justifyContent: "Center",
-                    items: [oStatusText, oProgressBar, oSpinner],
-                    width: "100%"
-                });
-
-                const oDialog = new sap.m.Dialog({
-                    title: "Fetching Vacancy Positions",
-                    contentWidth: "400px",
-                    content: [oVBox],
-                    showHeader: true,
-                    draggable: false,
-                    resizable: false
-                });
-                oDialog.open();
-
-                // ⏱️ Format helper
-                const formatTime = (sec) => {
-                    const m = Math.floor(sec / 60);
-                    const s = Math.floor(sec % 60);
-                    return `${m > 0 ? m + "m " : ""}${s}s`;
-                };
-
-                // 🔄 Progress updater
-                const updateProgress = () => {
-                    const percent = Math.min(Math.round((processed / positionCodes.length) * 100), 100);
-                    const elapsedSec = (Date.now() - startTime) / 1000;
-                    const avgPerItem = elapsedSec / (processed || 1);
-                    const remainingSec = (positionCodes.length - processed) * avgPerItem;
-                    const eta = remainingSec > 3 ? ` (~${formatTime(remainingSec)} left)` : "";
-
-                    oProgressBar.setPercentValue(percent);
-                    oProgressBar.setDisplayValue(`${percent}% ${eta}`);
-                    oProgressBar.setState("Information");
-                    oStatusText.setText(`Processed ${processed}/${positionCodes.length} positions${eta}`);
-                    oDialog.setTitle(`Fetching Vacancies — ${percent}%`);
-                };
-
-                // 📦 Batch request creator
-                const createBatchPromise = (chunk, batchNo) => {
-                    return new Promise((batchResolve, batchReject) => {
-                        const aRequestMap = [];
-
-                        chunk.forEach(position => {
-                            const filters = [new sap.ui.model.Filter("position", sap.ui.model.FilterOperator.EQ, position.code)];
-                            aRequestMap.push(position);
-                            model.read(entityPath, {
-                                filters,
-                                urlParameters: {
-                                    fromDate: "1900-01-01",
-                                    $orderby: "startDate desc",
-                                    $select: "position,emplStatus,startDate" // optimization
-                                },
-                                groupId: "positionBatch"
-                            });
-                        });
-
-                        model.submitChanges({
-                            groupId: "positionBatch",
-                            success: function (oResponse) {
-                                if (oResponse.__batchResponses) {
-                                    oResponse.__batchResponses.forEach((resp, index) => {
-                                        const pos = aRequestMap[index];
-                                        const results = resp?.data?.results || [];
-                                        if (results.length === 0 || (results[0].emplStatus !== "6021" && results[0].emplStatus !== "6025")) {
-                                            oVacancyList.push(pos);
-                                        }
-                                    });
-                                }
-
-                                processed += chunk.length;
-                                updateProgress();
-                                batchResolve();
-                            },
-                            error: function (err) {
-                                console.error(`❌ Batch ${batchNo} failed`, err);
-                                batchReject(err);
-                            }
-                        });
-                    });
-                };
-
-                // 🔢 Split positions into chunks
-                const chunks = [];
-                for (let i = 0; i < positionCodes.length; i += chunkSize) {
-                    chunks.push(positionCodes.slice(i, i + chunkSize));
-                }
-
-                // 🚀 Execute batches in parallel (5 at a time)
-                const processParallelBatches = async () => {
-                    for (let i = 0; i < chunks.length; i += parallelBatches) {
-                        const group = chunks.slice(i, i + parallelBatches);
-                        await Promise.all(group.map((chunk, idx) => createBatchPromise(chunk, i + idx + 1)));
-                        await new Promise(r => setTimeout(r, 200)); // keep UI responsive
-                    }
-                };
-
-                // 🧩 Execute and finalize
-                processParallelBatches()
-                    .then(() => {
-                        oProgressBar.setState("Success");
-                        oProgressBar.setPercentValue(100);
-                        oProgressBar.setDisplayValue("100% (Done)");
-                        oStatusText.setText(`Completed successfully — ${oVacancyList.length} vacancies found.`);
-                        oDialog.setTitle("✅ Fetch Complete");
-                        console.log("🏁 All batches completed in", ((Date.now() - startTime) / 1000).toFixed(1), "sec");
-
-                        setTimeout(() => {
-                            oDialog.close();
-                        }, 1500);
-
+                    if (startIndex >= positionCodes.length) {
+                        console.log("All batches submitted.");
                         resolve(oVacancyList);
-                    })
-                    .catch((err) => {
-                        oProgressBar.setState("Error");
-                        oProgressBar.setDisplayValue("Failed");
-                        oStatusText.setText("Error fetching vacancy data.");
-                        oDialog.setTitle("❌ Error Occurred");
-                        sap.m.MessageBox.error("Vacancy Batch Error: " + (err.message || err));
-                        reject(err);
+                        return;
+                    }
+
+                    var chunk = positionCodes.slice(startIndex, startIndex + chunkSize);
+                    var aRequestMap = [];
+
+                    chunk.forEach(position => {
+                        var aFilters = [new Filter("position", FilterOperator.EQ, position.code)];
+                        aRequestMap.push(position);
+
+                        model.read(entityPath, {
+                            filters: aFilters,
+                            urlParameters: {
+                                "fromDate": "1900-01-01",
+                                "$orderby": "startDate desc"
+                            },
+                            groupId: "positionBatch",
+                        });
                     });
+                    //console.log("Submitting batch for records:" +chunk.length);
+
+                    // Submit batch and process next chunk
+                    model.submitChanges({
+                        groupId: "positionBatch",
+                        success: function (oResponse) {
+                            console.log("Batch chunk from index ", startIndex, " successful");
+                            if (oResponse.__batchResponses) {
+                                oResponse.__batchResponses.forEach((resp, index) => {
+                                    let position = aRequestMap[index];
+
+                                    if (resp.data.results.length > 0) {
+                                        if (resp.data.results[0].emplStatus !== "6021" && resp.data.results[0].emplStatus !== "6025") {
+                                            //console.log("emplStatus Not Equal to 6021 & 6025: ", position.code);
+                                            oVacancyList.push(position);
+                                        }
+                                    } else if (resp.data.results.length == 0) {
+                                        oVacancyList.push(position);
+                                    }
+                                });
+                            }
+                            processChunk(startIndex + chunkSize); // process next chunk
+                        },
+                        error: function (oError) {
+                            reject(oError);
+
+                            console.error("Vacancy Batch Error: " + oError.responseText);
+                            sap.m.MessageBox.error("Vacancy Batch Error: " + oError.responseText);
+                        }
+                    });
+                }
+                processChunk(0);
             });
         },
-
 
         handleSelectionFinish: function (oEvent) {
             var selectedItems = oEvent.getParameter("selectedItems");
@@ -1086,24 +927,7 @@ sap.ui.define([
         
                 this.getView().byId("idPositionTable").getBinding("items").filter(oTableSearchState, "Application");
             }, */
-        onSearchPosition: function (oEvent) {
-            const sQuery = oEvent.getParameter("newValue")?.trim() || "";
-            const oTable = this.byId("idVacancyTable");
 
-            // Get current binding
-            const oBinding = oTable.getBinding("items");
-
-            // Build filter (case-insensitive match)
-            let aFilters = [];
-            if (sQuery) {
-                aFilters.push(
-                    new sap.ui.model.Filter("code", sap.ui.model.FilterOperator.Contains, sQuery)
-                );
-            }
-
-            // Apply filter
-            oBinding.filter(aFilters);
-        },
         // working properly for one or more fields
         onSearch: function (oEvent) {
             var sQuery = oEvent.getSource().getValue();
@@ -1116,7 +940,7 @@ sap.ui.define([
             }
 
             var oCombined = new Filter(aFilters, false);
-            this.getView().byId("VacancyListModel").getBinding("items").filter([oCombined], "Application");
+            this.getView().byId("idPositionTable").getBinding("items").filter([oCombined], "Application");
         },
 
         _handleValueHelpClose: function (evt) {

@@ -99,13 +99,13 @@
 				</Table>
 			</Panel> -->
 			<Panel class="sapUiTinyMarginBegin" width="100%">
-				<Table id="idVacancyTable" items="{VanacyListModel>/}" inset="false" growing="true" growingThreshold="50" 
+				<Table id="idVacancyTable" items="{VacancyListModel>/}" inset="false" growing="true" growingThreshold="50" 
 						sticky="ColumnHeaders" mode="MultiSelect">
 					<headerToolbar>
 						<OverflowToolbar>
 							<Title id="idVacancyTitle" text="" level="H2"/>
 							<ToolbarSpacer/>
-							<SearchField liveChange="onSearch" width="10rem"/>
+							<SearchField liveChange="onSearchPosition" width="10rem"/>
 						</OverflowToolbar>
 					</headerToolbar>
 					<columns>
@@ -122,10 +122,10 @@
 					<items>
 						<ColumnListItem vAlign="Middle">
 							<cells>
-								<Text text="{VanacyListModel>code}"/>
-								<Text text="{VanacyListModel>externalName_defaultValue}" />
+								<Text text="{VacancyListModel>code}"/>
+								<Text text="{VacancyListModel>externalName_defaultValue}" />
 								<Text text="{
-											path: 'VanacyListModel>effectiveStartDate',
+											path: 'VacancyListModel>effectiveStartDate',
 											type: 'sap.ui.model.type.DateTime',
 											formatOptions: {
 												pattern: 'dd-MM-yyyy',

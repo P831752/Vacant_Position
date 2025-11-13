@@ -107,64 +107,111 @@ sap.ui.define([
             })
         },
 
-        _doGetVacancyPositions: async function (oEvent) {
-            var oICComboBox = this.byId("idICComboBox");
-            var sSelectedICKey = oICComboBox.getSelectedKey();
+        _doGetVacancyPositions: async function () {
+            const sIC = this.byId("idICComboBox").getSelectedKey();
+            const sEG = this.byId("idEgComboBox").getSelectedKey();
 
-            var oEgComboBox = this.byId("idEgComboBox");
-            var sSelectedEGKey = oEgComboBox.getSelectedKey();
-            try {
-                if (!sSelectedICKey) {
-                    throw new Error("Please select IC")
-                }
-                if (!sSelectedEGKey) {
-                    throw new Error("Please select Employee Group")
-                }
-
-                //if (!sSelectedKey) {
-
-                var oBusyDialog = new sap.m.BusyDialog({
-                    title: "Fetching Vacancy Positions",
-                    text: "Please wait..."
-                });
-                oBusyDialog.open();
-
-                var that = this;
-                var oModel = this.getOwnerComponent().getModel("EGModel");//define wihtout empty model name in Manifest
-                var oJSONModel = new JSONModel();
-
-                var oSelEGFilters = [];
-                oSelEGFilters.push(new sap.ui.model.Filter("effectiveStatus", sap.ui.model.FilterOperator.EQ, 'A'));
-                oSelEGFilters.push(new sap.ui.model.Filter("cust_EmployeeGroup", sap.ui.model.FilterOperator.EQ, sSelectedEGKey));
-                oSelEGFilters.push(new sap.ui.model.Filter("businessUnit", sap.ui.model.FilterOperator.EQ, sSelectedICKey));
-
-
-
-                const allPositionCodes = await that._readAllPositionCodes(oModel, "/Position", oSelEGFilters, oBusyDialog);
-                console.log("allPositionCodes:" + allPositionCodes.length);
-                oBusyDialog.setTitle("verifying total " + allPositionCodes.length + " records")
-
-                const allVacancyCodes = await that._readAllVacancyCodes(oModel, "/EmpJob", allPositionCodes, oBusyDialog);
-
-                oJSONModel.setData(allVacancyCodes);
-                oJSONModel.setSizeLimit(1000000);
-                that.getView().setModel(oJSONModel, "VanacyListModel");
-                that.byId('idVacancyTitle').setText("Vacant Positions (" + allVacancyCodes.length + ")");
-
-            } catch (error) {
-                MessageBox.error(error.message) // Show error on screen
-                oBusyDialog.close();
-                console.error("OData error:", error);
+            if (!sIC || !sEG) {
+                return sap.m.MessageBox.warning("Please select IC and Employee Group");
             }
 
-            oBusyDialog.close();
+            // 🌀 Show progress dialog
+            const oBusyDialog = new sap.m.BusyDialog({
+                title: "Fetching Vacancy Positions",
+                text: "Please wait while we process records...",
+            });
+            oBusyDialog.open();
 
-            // else {
-            //     let oJSONModel = new JSONModel();
-            //     this.getView().setModel(oJSONModel, "PositionsCodeModel");
-            // }
+            try {
+                // 1️⃣ Start job
+                const sServiceUrl = this.getOwnerComponent().getModel("VacancyService").sServiceUrl;
+                const startResponse = await $.ajax({
+                    url: `${sServiceUrl}StartVacancyJob`,
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ IC: sIC, EmpGroup: sEG }),
+                });
+
+                const jobId = startResponse.jobId;
+                console.log("🚀 Vacancy job started:", jobId);
+
+                // 2️⃣ Poll for progress
+                const pollInterval = 5000; // 5 seconds
+                const poll = async (resolve, reject) => {
+                    try {
+                        const statusResponse = await $.ajax({
+                            url: `${sServiceUrl}GetJobStatus`,
+                            type: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({ jobId }),
+                        });
+
+                        const job = statusResponse;
+
+                        // Update dialog text
+                        if (job.status === "RUNNING") {
+                            oBusyDialog.setText(job.message || "Processing...");
+                            console.log(job.message);
+                            setTimeout(() => poll(resolve, reject), pollInterval);
+                        } else if (job.status === "SUCCESS") {
+                            oBusyDialog.setText("Completed successfully. Preparing results...");
+                            console.log("✅ Job completed:", job.message);
+
+                            // 3️⃣ Bind result to table
+                            const oModel = new sap.ui.model.json.JSONModel(job.result || []);
+                            this.getView().setModel(oModel, "VacancyListModel");
+
+                            this.byId("idVacancyTitle").setText(`Vacant Positions (${job.result.length})`);
+                            resolve(job.result);
+                        } else if (job.status === "ERROR") {
+                            oBusyDialog.close();
+                            sap.m.MessageBox.error(`Job failed: ${job.message}`);
+                            reject(job.message);
+                        } else {
+                            oBusyDialog.close();
+                            sap.m.MessageBox.error(`Unknown job status: ${job.status}`);
+                            reject(job.status);
+                        }
+                    } catch (err) {
+                        oBusyDialog.close();
+                        sap.m.MessageBox.error(`Error polling job: ${err.message}`);
+                        reject(err);
+                    }
+                };
+
+                // Start polling
+                await new Promise(poll);
+            } catch (err) {
+                oBusyDialog.close();
+                sap.m.MessageBox.error(`Error starting job: ${err.message}`);
+            } finally {
+                oBusyDialog.close();
+            }
         },
 
+        _getVacancyList(ic, eg) {
+            let oModel = this.getOwnerComponent().getModel("VacancyService").sServiceUrl
+
+
+            // Return a promise
+            return new Promise((resolve, reject) => {
+
+                $.ajax({
+                    url: `${oModel}GetVacancies`,
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ IC: ic, EmpGroup: eg }),
+                    success: (response) => {
+                        console.log("response:" + response)
+                        resolve(response); // Resolve the promise with response
+                    },
+                    error: (err) => {
+                        let errorMsg = err?.responseText || "Unknown error";
+                        reject(new Error(errorMsg)); // Reject the promise
+                    }
+                });
+            });
+        },
         _readAllPositionCodes: async function (model, entityPath, filters, busyDialog) {
             //return new Promise((resolve, reject) => {
             let allPositionCodes = [];

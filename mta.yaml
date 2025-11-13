@@ -8,7 +8,7 @@ modules:
   path: router
   requires:
   - name: Vacant_Position-html5-repo-runtime
-  # - name: Vacant_Position-uaa
+  - name: Vacant_Position-uaa
   - name: Vacant_Position-destination-service
     group: destinations
     properties:
@@ -43,14 +43,14 @@ modules:
     - npm run build:cf
     supported-platforms: []
 resources:
-# - name: Vacant_Position-uaa
-#   type: org.cloudfoundry.managed-service
-#   parameters:
-#     config:
-#       tenant-mode: dedicated
-#       xsappname: Vacant_Position-${space-guid}
-#     service: xsuaa
-#     service-plan: application
+- name: Vacant_Position-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      tenant-mode: dedicated
+      xsappname: Vacant_Position-${space-guid}
+    service: xsuaa
+    service-plan: application
 - name: Vacant_Position-html5-repo-runtime
   type: org.cloudfoundry.managed-service
   parameters:
